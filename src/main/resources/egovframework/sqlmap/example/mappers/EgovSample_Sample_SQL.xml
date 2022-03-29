@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="changeFileNameDAO">
+	
+	<!-- 엑셀 서식 파일 작성 후 완료된 엑셀 파일 업로드 -->
+	<insert id = "fileuploadinsert" parameterType="ChangeFileNameDTO">
+	
+		INSERT INTO
+			excelfile
+				(no,
+				name,
+				uploaddate)
+		VALUES
+				(file_seq.nextval,
+				#{name},
+				SYSDATE)
+	
+	</insert>
+	
+	<!-- 엑셀 서식 업로드 파일 리스트 확인 화면 -->
+	<select id = "excelfilelist" resultType="ChangeFileNameDTO">
+	
+		SELECT
+		    no,
+		    name,
+		    uploaddate
+		FROM 
+		    excelfile
+		ORDER BY
+			no
+		DESC
+		
+	</select>
+
+</mapper>
