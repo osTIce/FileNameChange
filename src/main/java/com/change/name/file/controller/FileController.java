@@ -5,11 +5,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -170,6 +174,8 @@ public class FileController {
 		String excelFileUploadPath = uploadPath + "\\" + excelFileName;
 		System.out.println("FileController-allfilenamechange = excelFileUploadPath :"+ excelFileUploadPath);
 		
+		Map<String, String> cellMap = new HashMap<String, String>();
+		
 		// 엑셀 양식 파일 읽어오기 (apache.poi 라이브러리 사용)
 		try {
 			FileInputStream file = new FileInputStream(excelFileUploadPath);
@@ -186,14 +192,86 @@ public class FileController {
 			int rows = sheet.getPhysicalNumberOfRows();
 			System.out.println("FileController-allfilenamechange-EXCEL = rows :"+rows);
 			
-			// 행 개수만큼 반복문 돌려서 행 값 가져오기
-			for(int i = 0; i < rows; i++) {
+			// 엑셀 앞에 추가할 이름 값 가져오기
+			String frontValue = exceltypecheck(excelFileUploadPath, 1, 3);
+			System.out.println("FileController-allfilenamechange-EXCEL = front name value :"+frontValue);
+			
+			// 엑셀 양식 뒤에 추가할 이름 가져오기
+			String backValue = exceltypecheck(excelFileUploadPath, 1, 4);
+			System.out.println("FileController-allfilenamechange-EXCEL = back name value :"+backValue);
+			
+			// 행 개수만큼 반복문 돌려서 행 값 가져오기 (i가 1부터 시작하는 이유는 0번째 index는 서식을 의미하기 때문에)
+			for(int i = 1; i < rows; i++) {
 				
 				XSSFRow row = sheet.getRow(i);
 				
+				// getPhysicalNumberOfRows 함수가 row의 수를 캐치하여 리턴해주는데, 해당 값이 이상하게 리턴이 되는 부분도 있어서 row 값이 null인지 아닌지 확인해야 한다.
+				if(row == null) {
+					break;
+				}
+				
+				// 해당 행 셀 개수 확인
+				int cells = row.getPhysicalNumberOfCells();
+				String key = "";
+				String value = "";
+				System.out.println("FileController-allfilenamechange-EXCEL = cells :"+cells);
+				int j = 0;
+				
+				for(; j < cells; j++) {
+					XSSFCell cell =	row.getCell(j);
+					
+					if(cell == null) {
+						break;
+					}
+					
+					// 원래 기존에는 타입 체크할 때 CELL.TYPE.FORMULA 식으로 작성해야하는데, poi 버전이 업데이트 되면서 아래와 같이 바뀐 듯 (정확히는 잘 모르겠음)
+					// j가 0이면 map의 key값에 들어가고, j가 1이면 map의 value값에 들어감.
+					if(cell.getCellType() == CellType.FORMULA) {
+						if(j == 0) {
+							key=cell.getCellFormula();
+						}else if(j == 1) {
+							value=cell.getCellFormula();
+						}
+					}else if(cell.getCellType() == CellType.NUMERIC) {
+						if(j == 0) {
+							key=cell.getNumericCellValue() + "";
+						}else if(j == 1) {
+							value=cell.getNumericCellValue() + "";
+						}
+					}else if(cell.getCellType() == CellType.STRING) {
+						if(j == 0) {
+							key=cell.getStringCellValue();
+						}else if(j == 1) {
+							value=cell.getStringCellValue();
+						}
+					}else if(cell.getCellType() == CellType.BLANK) {
+						if(j == 0) {
+							key=cell.getBooleanCellValue() + "";
+						}else if(j == 1) {
+							value=cell.getBooleanCellValue() + "";
+						}
+					}else if(cell.getCellType() == CellType.ERROR) {
+						if(j == 0) {
+							key=cell.getErrorCellValue() + "";
+						}else if(j == 1) {
+							value=cell.getErrorCellValue() + "";  
+						}
+					}
+					
+					if(key != "" & value != "") {
+						
+						System.out.println("FileController-allfilenamechange-EXCEL = key :"+ key);
+						System.out.println("FileController-allfilenamechange-EXCEL = value :"+ value);
+						
+						cellMap.put(key, value);
+					}
+					
+				}
+				
 			}
 			
-			
+			// FileInputStream 닫기
+			file.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -215,6 +293,49 @@ public class FileController {
 			list.add(uploadFile);
 			
 		}
+		
+	}
+	
+	// 엑셀 양식 받아오는 값 타입 설정 함수 (2번 다 적기에는 양이 많아서 따로 함수 작성)
+	public String exceltypecheck(String path, int rowCheck, int cellCheck) {
+		
+		String value = "";
+		
+		try {
+			
+			FileInputStream file = new FileInputStream(path);
+			XSSFWorkbook workbook = new XSSFWorkbook(file);
+			XSSFSheet sheet = workbook.getSheetAt(0);
+			XSSFRow row = sheet.getRow(rowCheck);
+			XSSFCell cell = row.getCell(cellCheck);
+			
+			switch (cell.getCellType()) {
+			case FORMULA:
+				value=cell.getCellFormula();
+				break;
+			case NUMERIC:
+				value=cell.getNumericCellValue() + "";
+				break;
+			case STRING:
+				value=cell.getStringCellValue();
+				break;
+			case BLANK:
+				value=cell.getBooleanCellValue() + "";
+				break;
+			case ERROR:
+				value=cell.getErrorCellValue() + "";
+				break;
+			default:
+				value = "";
+			}
+			
+			file.close();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return value;
 		
 	}
 	
