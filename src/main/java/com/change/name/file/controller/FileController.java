@@ -284,13 +284,43 @@ public class FileController {
 		// 문자열 값을 숫자로 변환
 		int fileLen = Integer.valueOf(fileLength);
 		
-		ArrayList<MultipartFile> list = new ArrayList<MultipartFile>();
+		ArrayList<String> list = new ArrayList<String>();
 		
 		// formData로 전달한 데이터 ArrayList에 담기
 		for(int i = 0; i < fileLen; i++) {
 		
 			MultipartFile uploadFile = mRequest.getFile("fileName" + i);
-			list.add(uploadFile);
+			
+			// 파일 이름 가져오기
+			String fileName = uploadFile.getOriginalFilename();
+			System.out.println("FileController-allfilenamechange-EXCEL = fileName :"+fileName);
+			
+			// 마지막 "."이 있는 인덱스 숫자 반환
+			int idx = fileName.lastIndexOf(".");
+			
+			// 0 ~ idx 숫자까지 (파일 명만 가져오기)
+			String fileNameChange = fileName.substring(0, idx);
+			System.out.println("FileController-allfilenamechange-EXCEL = fileNameChange :"+fileNameChange);
+			
+			// 해당 파일 확장자 구하기
+			String fileNameChangeExt = fileName.substring(idx);
+			System.out.println("FileController-allfilenamechange-EXCEL = fileNameChangeExt :"+fileNameChangeExt);
+			
+			list.add(fileNameChange);
+			
+			// 향상된 반복문 (Map에 저장된 키값 가져오기)
+			for(String key : cellMap.keySet()) {
+				
+				boolean listCheck = list.get(i).contains(key);
+				
+				if(listCheck == true) {
+					String checkValue = cellMap.get(key);
+					System.out.println("FileController-allfilenamechange-EXCEL = get checkValue :"+checkValue);
+					String replaceChangeValue = list.get(i).replace(key, checkValue);
+					System.out.println("FileController-allfilenamechange-EXCEL = get replaceChangeValue :"+replaceChangeValue);
+				}
+					
+			}
 			
 		}
 		
